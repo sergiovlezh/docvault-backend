@@ -11,10 +11,12 @@
 	// "features": {},
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [
+		8000
+	],
 	
 	// Uncomment the next line to run commands after the container is created.
-	// "postCreateCommand": "cat /etc/os-release",
+	"postCreateCommand": "python src/manage.py runserver 0.0.0.0:8000",
 	
 	// Configure tool-specific properties.
 	"customizations": {
