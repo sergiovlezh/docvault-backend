@@ -17,3 +17,11 @@ RUN python -m pip install --upgrade pip setuptools wheel pip-tools
 COPY requirements.txt ./requirements.txt
 
 RUN pip-sync ./requirements.txt
+
+COPY . .
+
+# ENV PYTHONPATH=/workspace/src
+
+EXPOSE 8000
+
+CMD ["python", "src/manage.py", "runserver", "0.0.0.0:8000"]
