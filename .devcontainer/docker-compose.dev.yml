@@ -28,12 +28,6 @@ services:
     volumes:
       - ../:/workspace:cached
       - media:/workspace/media
-      # Git settings
-      - ~/.gitconfig:/root/.gitconfig:ro
-      # SSH keys
-      - ~/.ssh:/root/.ssh:ro
-      # Docker socket
-      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONUNBUFFERED=1
     depends_on:
