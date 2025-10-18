@@ -1,49 +1,46 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
 {
-	"name": "DocVault - Backend",
-	"build": {
-		"context": "..",
-		"dockerfile": "../Dockerfile"
-	},
-	
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-	
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [
-		8000
-	],
-	
-	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "python src/manage.py runserver 0.0.0.0:8000",
-	
-	// Configure tool-specific properties.
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"ms-python.python",
-				"ms-python.debugpy",
-				"charliermarsh.ruff",
-				"mhutchie.git-graph"
-			],
-			"settings": {
-				"python.linting.ruffEnabled": true,
-				"editor.formatOnSave": true,
-				"files.autoSave": "afterDelay",
-				"files.autoSaveDelay": 1000,
-				"python.formatting.provider": "ruff",
-				"editor.codeActionsOnSave": {
-					"source.organizeImports": "always"
-				},
-				"editor.rulers": [
-					80,
-					120
-				]
-			}
-		}
-	}
-
-	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "devcontainer"
+    "name": "DocVault - Back",
+    "dockerComposeFile": [
+        "./docker-compose.dev.yml"
+    ],
+    "workspaceFolder": "/workspace",
+    "service": "backend",
+    "runServices": [
+        "backend",
+        "db"
+    ],
+    "shutdownAction": "stopCompose",
+    "forwardPorts": [
+        8000, // backend
+        5432 // db
+    ],
+    "postStartCommand": {
+        "runserver": "python /workspace/src/manage.py runserver 0.0.0.0:8000"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.debugpy",
+                "charliermarsh.ruff",
+                "mhutchie.git-graph",
+                "GitHub.copilot",
+                "github.copilot-chat"
+            ],
+            "settings": {
+                "python.linting.ruffEnabled": true,
+                "editor.formatOnSave": true,
+                "files.autoSave": "afterDelay",
+                "files.autoSaveDelay": 1000,
+                "python.formatting.provider": "ruff",
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": "always"
+                },
+                "editor.rulers": [
+                    80,
+                    120
+                ]
+            }
+        }
+    }
 }
