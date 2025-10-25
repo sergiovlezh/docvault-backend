@@ -14,9 +14,6 @@
         8000, // backend
         5432 // db
     ],
-    "postStartCommand": {
-        "runserver": "python /workspace/src/manage.py runserver 0.0.0.0:8000"
-    },
     "mounts": [
         "source=${env:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached"
     ],
