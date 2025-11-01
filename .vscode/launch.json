@@ -12,6 +12,13 @@
             "django": true,
             "autoStartBrowser": false,
             "program": "${workspaceFolder}/src/manage.py"
+        },
+        {
+            "name": "Pytest",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
