@@ -10,12 +10,20 @@
             "isBackground": true,
             "presentation": {
                 "reveal": "always",
-                "panel": "new",
+                "panel": "new"
             },
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
+            }
+        },
+        {
+            "label": "compile and sync reqs",
+            "type": "shell",
+            "command": "pip-compile --output-file=requirements.txt requirements.in && pip-sync requirements.txt",
+            "problemMatcher": [
+                "$python"
+            ]
         }
     ]
 }
