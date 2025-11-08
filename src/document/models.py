@@ -61,6 +61,9 @@ class Document(models.Model):
     def __str__(self):
         return self.title
 
+    def add_tag(self, tag: Tag, added_by: AbstractUser) -> None:
+        DocumentTag.objects.create(document=self, tag=tag, added_by=added_by)
+
 
 class DocumentFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
