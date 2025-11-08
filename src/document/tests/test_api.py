@@ -8,7 +8,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from document.models import Document, DocumentFile, Tag
+from document.models import Document, DocumentFile, DocumentNote, Tag
 
 User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
@@ -247,3 +247,100 @@ class DocumentFileViewSetTests(BaseAPITestCase):
             response.status_code, [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND]
         )
         self.assertFalse(DocumentFile.objects.filter(document=other_doc).exists())
+
+
+class DocumentNoteViewSetTests(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.document = Document.objects.create(
+            title="Sample Note Doc",
+            owner=self.user,
+        )
+
+    def test_create_note(self):
+        # --- Arrange
+        url = self.url("document-notes-list", document_pk=self.document.pk)
+        content = "Remember to review this."
+
+        # --- Act
+        response = self.client.post(url, {"content": content})
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(data["content"], content)
+        self.assertTrue(DocumentNote.objects.filter(document=self.document).exists())
+
+    def test_list_notes(self):
+        # --- Arrange
+        DocumentNote.objects.create(
+            document=self.document, created_by=self.user, content="Note 1"
+        )
+
+        url = self.url("document-notes-list", document_pk=self.document.pk)
+
+        # --- Act
+        response = self.client.get(url)
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(data), 1)
+
+    def test_update_note(self):
+        # --- Arrange
+        note = DocumentNote.objects.create(
+            document=self.document, created_by=self.user, content="Old text"
+        )
+
+        url = self.url(
+            "document-notes-detail", document_pk=self.document.pk, pk=note.pk
+        )
+
+        new_content = "Updated text"
+
+        # --- Act
+        response = self.client.patch(url, {"content": new_content})
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["content"], new_content)
+
+        note.refresh_from_db()
+        self.assertEqual(note.content, new_content)
+
+    def test_delete_note(self):
+        # --- Arrange
+        note = DocumentNote.objects.create(
+            document=self.document, created_by=self.user, content="To delete"
+        )
+
+        url = self.url(
+            "document-notes-detail", document_pk=self.document.pk, pk=note.pk
+        )
+
+        # --- Act
+        response = self.client.delete(url)
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(DocumentNote.objects.filter(pk=note.pk).exists())
+
+    def test_note_access_denied_for_foreign_document(self):
+        # --- Arrange
+        other_doc = Document.objects.create(title="Private", owner=self.other_user)
+
+        url = self.url("document-notes-list", document_pk=other_doc.pk)
+
+        content = "Unauthorized note"
+
+        # --- Act
+        response = self.client.post(url, {"content": content})
+
+        # --- Assert
+        self.assertIn(
+            response.status_code, [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND]
+        )
+        self.assertFalse(DocumentNote.objects.filter(document=other_doc).exists())
