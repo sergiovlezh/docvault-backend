@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from document.models import Tag
+from document.models import Document, Tag
 
 User = get_user_model()
 
@@ -90,3 +90,84 @@ class TagViewSetTests(BaseAPITestCase):
         # --- Assert
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Tag.objects.filter(pk=self.tag.pk).exists())
+
+
+class DocumentViewSetTests(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+        self.tag = Tag.objects.create(name="finance")
+        self.document = Document.objects.create(
+            title="Invoice 2025", description="Tax related", owner=self.user
+        )
+        self.document.add_tag(self.tag, added_by=self.user)
+
+    def test_list_documents(self):
+        # --- Arrange
+        url = self.url("document-list")
+
+        # --- Act
+        response = self.client.get(url)
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(self.document.title, [document["title"] for document in data])
+
+    def test_create_document(self):
+        # --- Arrange
+        url = self.url("document-list")
+
+        title = "New Document"
+        description = "My first doc"
+
+        # --- Act
+        response = self.client.post(url, {"title": title, "description": description})
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(data["title"], title)
+        self.assertTrue(Document.objects.filter(title=title, owner=self.user).exists())
+
+    def test_document_visibility_limited_to_owner(self):
+        # --- Arrange
+        other_document = Document.objects.create(title="Hidden", owner=self.other_user)
+
+        url = self.url("document-list")
+
+        # --- Act
+        response = self.client.get(url)
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [document["title"] for document in data]
+        self.assertNotIn(other_document.title, titles)
+
+    def test_update_document(self):
+        # --- Arrange
+        url = self.url("document-detail", pk=self.document.pk)
+
+        new_title = "Updated Title"
+
+        # --- Act
+        response = self.client.patch(url, {"title": new_title})
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["title"], new_title)
+
+        self.document.refresh_from_db()
+        self.assertEqual(self.document.title, new_title)
+
+    def test_delete_document(self):
+        # --- Arrange
+        url = self.url("document-detail", pk=self.document.pk)
+
+        # --- Act
+        response = self.client.delete(url)
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Document.objects.filter(pk=self.document.pk).exists())
