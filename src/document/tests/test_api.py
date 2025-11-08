@@ -1,11 +1,17 @@
+import shutil
+import tempfile
+
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from document.models import Document, Tag
+from document.models import Document, DocumentFile, Tag
 
 User = get_user_model()
+TEMP_MEDIA_ROOT = tempfile.mkdtemp()
 
 
 class BaseAPITestCase(APITestCase):
@@ -95,6 +101,7 @@ class TagViewSetTests(BaseAPITestCase):
 class DocumentViewSetTests(BaseAPITestCase):
     def setUp(self):
         super().setUp()
+
         self.tag = Tag.objects.create(name="finance")
         self.document = Document.objects.create(
             title="Invoice 2025", description="Tax related", owner=self.user
@@ -171,3 +178,72 @@ class DocumentViewSetTests(BaseAPITestCase):
         # --- Assert
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Document.objects.filter(pk=self.document.pk).exists())
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class DocumentFileViewSetTests(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.document = Document.objects.create(
+            title="Sample Doc",
+            owner=self.user,
+        )
+
+    def tearDown(self):
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+        super().tearDown()
+
+    def test_upload_file(self):
+        # --- Arrange
+        url = self.url("document-files-list", document_pk=self.document.pk)
+        uploaded_file = SimpleUploadedFile(
+            "test.pdf", b"%PDF-1.4 content", content_type="application/pdf"
+        )
+
+        # --- Act
+        response = self.client.post(url, {"file": uploaded_file}, format="multipart")
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(DocumentFile.objects.filter(document=self.document).exists())
+
+        # self.assertTrue(self.document.files.filter(id=data["id"]).exists())
+        self.assertTrue(
+            DocumentFile.objects.filter(document=self.document, id=data["id"]).exists()
+        )
+
+    def test_list_files(self):
+        # --- Arrange
+        DocumentFile.objects.create(
+            document=self.document, uploaded_by=self.user, file="dummy.pdf"
+        )
+
+        url = self.url("document-files-list", document_pk=self.document.pk)
+
+        # --- Act
+        response = self.client.get(url)
+        data = response.json()
+
+        # --- Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(data), 1)
+
+    def test_upload_denied_for_foreign_document(self):
+        # --- Arrange
+        other_doc = Document.objects.create(title="Foreign", owner=self.other_user)
+
+        url = self.url("document-files-list", document_pk=other_doc.pk)
+
+        uploaded_file = SimpleUploadedFile("x.pdf", b"blocked")
+
+        # --- Act
+        response = self.client.post(url, {"file": uploaded_file}, format="multipart")
+
+        # --- Assert
+        self.assertIn(
+            response.status_code, [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND]
+        )
+        self.assertFalse(DocumentFile.objects.filter(document=other_doc).exists())
