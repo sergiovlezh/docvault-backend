@@ -20,6 +20,10 @@
     "containerEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent"
     },
+    "initializeCommand": "docker network create devcontainer-net || true",
+    "runArgs": [
+        "--network=devcontainer-net"
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
