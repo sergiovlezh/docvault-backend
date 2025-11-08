@@ -23,7 +23,7 @@ def document_file_path(instance: "DocumentFile", filename: str) -> str:
         str: The constructed file path.
     """
     user_id: int = instance.owner.pk
-    file_id: uuid.UUID = instance.id
+    file_id: uuid.UUID = instance.id or uuid.uuid4()
     ext: str = Path(filename).suffix.lower() or ""
 
     return f"documents/{user_id}/{file_id}{ext}"
